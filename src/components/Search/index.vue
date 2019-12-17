@@ -19,7 +19,7 @@
               <span>{{item.nm}}</span>
               <span>{{item.sc}}</span>
             </p>
-            <p>{{item.enm}}</p>
+            <p>{{item.enm}}    </p>
             <p>{{item.cat}}</p>
             <p>{{item.rt}}</p>
           </div>
