@@ -2,20 +2,33 @@
 <template>
   <div class="city_body">
     <div class="city_list">
-      <div class="city_hot">
-        <h2>热门城市</h2>
-        <ul class="clearfix">
-          <li v-for="item in hostList" :key="item.id">{{item.nm}}</li>
-        </ul>
-      </div>
-      <div class="city_sort" ref="city_sort">
-        <div v-for="item in cityList" :key="item.key">
-          <h2>{{item.index}}</h2>
-          <ul>
-            <li v-for="itemList in item.list" :key="itemList.id">{{itemList.nm}}</li>
-          </ul>
+      <Loading v-if="isLoading" />
+      <Scroller v-else ref="city_list">
+        <div>
+          <div class="city_hot">
+            <h2>热门城市</h2>
+            <ul class="clearfix">
+              <li
+                v-for="item in hotList"
+                :key="item.id"
+                @tap="handleToCity(item.nm,item.id)"
+              >{{item.nm}}</li>
+            </ul>
+          </div>
+          <div class="city_sort" ref="city_sort">
+            <div v-for="item in cityList" :key="item.key">
+              <h2>{{item.index}}</h2>
+              <ul>
+                <li
+                  v-for="itemList in item.list"
+                  :key="itemList.id"
+                  @tap="handleToCity(itemList.nm,itemList.id)"
+                >{{itemList.nm}}</li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
+      </Scroller>
     </div>
     <div class="city_index">
       <ul>
@@ -35,35 +48,47 @@ export default {
   data() {
     return {
       cityList: [],
-      hostList: []
+      hotList: [],
+      isLoading: true
     };
   },
   mounted() {
-    this.axios.get("/api/cityList").then(res => {
-      var msg = res.data.msg;
-      //判断
-      if (msg == "ok") {
-        // 保存城市
-        var cities = res.data.data.cities;
-        /** 分组
-         * [{ index: "a", list: [{ nm: "啊成", id: 123 }] }];
-         */
-        var { cityList, hostList } = this.formatCityList(cities);
-        this.cityList = cityList;
-        this.hostList = hostList;
-      }
-    });
+    var cityList = window.localStorage.getItem("cityList");
+    var hotList = window.localStorage.getItem("hotList");
+    if (cityList && hotList) {
+      // 当再次刷新  解析回来
+      this.cityList = JSON.parse(cityList);
+      this.hotList = JSON.parse(hotList);
+      this.isLoading = false;
+    } else {
+      this.axios.get("/api/cityList").then(res => {
+        var msg = res.data.msg;
+        //判断32
+        if (msg == "ok") {
+          this.isLoading = false;
+          // 保存城市
+          var cities = res.data.data.cities;
+          /** 分组 [{ index: "a", list: [{ nm: "啊成", id: 123 }] }];*/
+          var { cityList, hotList } = this.formatCityList(cities);
+          this.cityList = cityList;
+          this.hotList = hotList;
+          // 本地存储                             转换为字符串格式
+          window.localStorage.setItem("cityList", JSON.stringify(cityList));
+          window.localStorage.setItem("hotList", JSON.stringify(hotList));
+        }
+      });
+    }
   },
   methods: {
     formatCityList(cities) {
       // 城市分类数组
       var cityList = [];
       // 热门城市数组
-      var hostList = [];
+      var hotList = [];
 
       for (var i = 0; i < cities.length; i++) {
         if (cities[i].isHot === 1) {
-          hostList.push(cities[i]);
+          hotList.push(cities[i]);
         }
       }
       for (var i = 0; i < cities.length; i++) {
@@ -109,15 +134,23 @@ export default {
       }
       return {
         cityList,
-        hostList
+        hotList
       };
       // console.log(cityList);
-      // console.log(hostList)
+      // console.log(hotList)
     },
     // 点击字母效果
     handleToIndex(index) {
       var h2 = this.$refs.city_sort.getElementsByTagName("h2");
-      this.$refs.city_sort.parentNode.scrollTop = h2[index].offsetTop;
+      // this.$refs.city_sort.parentNode.scrollTop = h2[index].offsetTop;
+      this.$refs.city_list.toScrollTop(-h2[index].offsetTop);
+    },
+    handleToCity(nm, id) {
+      //修改状态管理
+      this.$store.commit("city/CITY_INFO", { nm, id });
+      window.localStorage.setItem("nowNm", nm);
+      window.localStorage.setItem("nowId", id);
+      this.$router.push("/movie/nowPlaying");
     }
   }
 };

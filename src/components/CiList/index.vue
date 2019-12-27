@@ -1,28 +1,31 @@
 <!--  -->
 <template>
   <div class="cinema_body">
-    <ul>
-      <li v-for="item in cinemaList" :key="item.id">
-        <div>
-          <span>{{item.nm}}</span>
-          <span class="q">
-            <span class="price">{{item.sellPrice}}</span> 元起
-          </span>
-        </div>
-        <div class="address">
-          <span>{{item.addr}}</span>
-          <span>{{item.distance}}km</span>
-        </div>
-        <div class="card">
-          <div
-            v-for="(num,key) in item.tag"
-            v-if="num === 1"
-            :class="key | classCard"
-            :key="key"
-          >{{key}}</div>
-        </div>
-      </li>
-    </ul>
+    <Loading v-if="isLoading" />
+    <Scroller v-else>
+      <ul>
+        <li v-for="item in cinemaList" :key="item.id">
+          <div>
+            <span>{{item.nm}}</span>
+            <span class="q">
+              <span class="price">{{item.sellPrice}}</span> 元起
+            </span>
+          </div>
+          <div class="address">
+            <span>{{item.addr}}</span>
+            <span>{{item.distance}}km</span>
+          </div>
+          <div class="card">
+            <div
+              v-for="(num,key) in item.tag"
+              v-if="num === 1"
+              :class="key | classCard"
+              :key="key"
+            >{{key}}</div>
+          </div>
+        </li>
+      </ul>
+    </Scroller>
   </div>
 </template>
 
@@ -31,14 +34,23 @@ export default {
   name: "CiList",
   data() {
     return {
-      cinemaList: []
+      cinemaList: [],
+      isLoading: true,
+      prevCityId: -1
     };
   },
-  mounted() {
-    this.axios.get("/api/searchList?cityId=10&kw=a").them(res => {
+  activated() {
+    var cityId = this.$store.state.city.id;
+    if ((this.prevCityId = cityId)) {
+      return;
+    }
+    this.isLoading = true;
+    this.axios.get("/api/searchList?cityId=" + cityId).then(res => {
       var msg = res.data.msg;
       if (msg === "ok") {
         this.cinemaList = res.data.data.cinemaList;
+        this.isLoading = false;
+        this.prevCityId = cityId;
       }
     });
   },
